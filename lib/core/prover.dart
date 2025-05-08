@@ -2,53 +2,54 @@ import 'dart:async';
 import 'dart:ffi' as ffi;
 import 'dart:isolate';
 import 'dart:typed_data';
-import 'noir_engine.dart';
+import 'noir_runtime.dart';
+import 'witness.dart';
 import '../utils/logger.dart';
 
-/// ProofGenerator handles the generation of zero-knowledge proofs.
+/// Prover handles the generation of zero-knowledge proofs.
 ///
 /// It provides functionality for generating proofs from compiled circuits
 /// and witness data. This class abstracts away the details of proof generation,
 /// providing a simple API for working with proofs.
-class ProofGenerator {
-  /// Singleton instance of the ProofGenerator
-  static final ProofGenerator _instance = ProofGenerator._internal();
+class Prover {
+  /// Singleton instance of the Prover
+  static final Prover _instance = Prover._internal();
 
   /// Factory constructor to return the singleton instance
-  factory ProofGenerator() {
+  factory Prover() {
     return _instance;
   }
 
   /// Private constructor for singleton pattern
-  ProofGenerator._internal();
+  Prover._internal();
 
-  /// The Noir engine instance
-  final NoirEngine _noirEngine = NoirEngine();
+  /// The Noir runtime instance
+  final NoirRuntime _noirRuntime = NoirRuntime();
 
-  /// Logger instance for the ProofGenerator
-  final Logger _logger = Logger('ProofGenerator');
+  /// Logger instance for the Prover
+  final Logger _logger = Logger('Prover');
 
-  /// Generate a proof for a circuit with the given inputs
+  /// Generate a proof for a circuit with the given witness
   ///
   /// [circuit] - The compiled circuit to generate a proof for
-  /// [inputs] - The inputs to the circuit as a Map
+  /// [witness] - The witness data for the circuit
   /// [options] - Options for proof generation
   ///
   /// Returns a generated proof
   Future<Proof> generateProof(
     CompiledCircuit circuit,
-    Map<String, dynamic> inputs, {
-    ProofGenerationOptions? options,
+    Witness witness, {
+    ProofOptions? options,
   }) async {
     try {
       _logger
           .debug('Generating proof for circuit: ${circuit.name ?? 'unnamed'}');
 
-      // Convert inputs to the format expected by the native code
-      final inputsPtr = _inputsToNative(inputs);
+      // Convert witness to the format expected by the native code
+      final witnessPtr = witness.toNative();
 
       // Get the function pointer for the proof generation function
-      final generateFunctionPtr = _noirEngine.nativeLib.lookup<
+      final generateFunctionPtr = _noirRuntime.nativeLib.lookup<
           ffi.NativeFunction<
               ffi.Pointer<ffi.Void> Function(
                   ffi.Pointer<ffi.Void>,
@@ -66,10 +67,10 @@ class ProofGenerator {
 
       // Call the proof generation function
       final proofPtr =
-          generateFunction(circuit.nativePtr, inputsPtr, optionsPtr);
+          generateFunction(circuit.nativePtr, witnessPtr, optionsPtr);
 
-      // Free the inputs and options memory
-      _freeInputs(inputsPtr);
+      // Free the witness and options memory
+      witness.freeNative(witnessPtr);
       if (options != null) ffi.calloc.free(optionsPtr);
 
       if (proofPtr == ffi.nullptr) {
@@ -91,15 +92,15 @@ class ProofGenerator {
   /// callback.
   ///
   /// [circuit] - The compiled circuit to generate a proof for
-  /// [inputs] - The inputs to the circuit as a Map
+  /// [witness] - The witness data for the circuit
   /// [options] - Options for proof generation
   /// [onProgress] - Callback for progress updates
   ///
   /// Returns a generated proof
   Future<Proof> generateProofInBackground(
     CompiledCircuit circuit,
-    Map<String, dynamic> inputs, {
-    ProofGenerationOptions? options,
+    Witness witness, {
+    ProofOptions? options,
     void Function(double progress)? onProgress,
   }) async {
     try {
@@ -109,15 +110,16 @@ class ProofGenerator {
       // Create a port for receiving the result
       final receivePort = ReceivePort();
 
-      // Serialize the circuit and inputs for transfer to the isolate
+      // Serialize the circuit and witness for transfer to the isolate
       final circuitBytes = await circuit.serialize();
+      final witnessBytes = await witness.serialize();
 
       // Spawn the isolate
       await Isolate.spawn(
         _generateProofIsolate,
         _ProofGenerationParams(
           circuitBytes: circuitBytes,
-          inputs: inputs,
+          witnessBytes: witnessBytes,
           options: options,
           sendPort: receivePort.sendPort,
         ),
@@ -155,22 +157,25 @@ class ProofGenerator {
   static Future<void> _generateProofIsolate(
       _ProofGenerationParams params) async {
     try {
-      // Initialize the Noir engine in the isolate
-      final noirEngine = NoirEngine();
-      await noirEngine.initialize();
+      // Initialize the Noir runtime in the isolate
+      final noirRuntime = NoirRuntime();
+      await noirRuntime.initialize();
 
       // Load the circuit
-      final circuit = await noirEngine.loadCompiledCircuit(
+      final circuit = await noirRuntime.loadCompiledCircuit(
         params.circuitBytes,
       );
 
-      // Create a ProofGenerator
-      final proofGenerator = ProofGenerator();
+      // Deserialize the witness
+      final witness = await Witness.fromBytes(params.witnessBytes);
+
+      // Create a Prover
+      final prover = Prover();
 
       // Generate the proof
-      final proof = await proofGenerator.generateProof(
+      final proof = await prover.generateProof(
         circuit,
-        params.inputs,
+        witness,
         options: params.options,
       );
 
@@ -192,40 +197,26 @@ class ProofGenerator {
     }
   }
 
-  /// Convert inputs to a native pointer
-  ffi.Pointer<ffi.Void> _inputsToNative(Map<String, dynamic> inputs) {
-    // This is a simplified implementation - a real implementation would need
-    // to properly convert the inputs to the expected native structure
-    // ... implementation details ...
-    return ffi.nullptr;
-  }
-
-  /// Free the memory used by the inputs
-  void _freeInputs(ffi.Pointer<ffi.Void> inputsPtr) {
-    // This is a simplified implementation - a real implementation would need
-    // to properly free the memory used by the inputs
-    // ... implementation details ...
-  }
-
   /// Convert options to a native pointer
-  ffi.Pointer<ffi.Void> _optionsToNative(ProofGenerationOptions options) {
+  ffi.Pointer<ffi.Void> _optionsToNative(ProofOptions options) {
     // This is a simplified implementation - a real implementation would need
     // to properly convert the options to the expected native structure
-    // ... implementation details ...
-    return ffi.nullptr;
+    final optionsPtr = ffi.calloc<ffi.Uint8>(512);
+    // ... populate the options ...
+    return optionsPtr.cast();
   }
 }
 
 /// Options for proof generation
-class ProofGenerationOptions {
+class ProofOptions {
   /// Number of threads to use for proof generation
   final int numThreads;
 
   /// Memory limit for proof generation (in bytes)
   final int memoryLimit;
 
-  /// Constructor for ProofGenerationOptions
-  const ProofGenerationOptions({
+  /// Constructor for ProofOptions
+  const ProofOptions({
     this.numThreads = 0, // 0 means use all available threads
     this.memoryLimit = 0, // 0 means no limit
   });
@@ -267,13 +258,13 @@ class Proof {
 /// Parameters for proof generation in an isolate
 class _ProofGenerationParams {
   final List<int> circuitBytes;
-  final Map<String, dynamic> inputs;
-  final ProofGenerationOptions? options;
+  final List<int> witnessBytes;
+  final ProofOptions? options;
   final SendPort sendPort;
 
   _ProofGenerationParams({
     required this.circuitBytes,
-    required this.inputs,
+    required this.witnessBytes,
     this.options,
     required this.sendPort,
   });
