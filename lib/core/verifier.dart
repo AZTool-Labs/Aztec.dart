@@ -1,32 +1,32 @@
 import 'dart:async';
 import 'dart:ffi' as ffi;
 import 'dart:typed_data';
-import 'noir_engine.dart';
-import 'proof_generator.dart';
+import 'noir_runtime.dart';
+import 'prover.dart';
 import '../utils/logger.dart';
 
-/// ProofVerifier handles the verification of zero-knowledge proofs.
+/// Verifier handles the verification of zero-knowledge proofs.
 ///
 /// It provides functionality for verifying proofs against compiled circuits.
 /// This class abstracts away the details of proof verification, providing
 /// a simple API for working with proofs.
-class ProofVerifier {
-  /// Singleton instance of the ProofVerifier
-  static final ProofVerifier _instance = ProofVerifier._internal();
+class Verifier {
+  /// Singleton instance of the Verifier
+  static final Verifier _instance = Verifier._internal();
 
   /// Factory constructor to return the singleton instance
-  factory ProofVerifier() {
+  factory Verifier() {
     return _instance;
   }
 
   /// Private constructor for singleton pattern
-  ProofVerifier._internal();
+  Verifier._internal();
 
-  /// The Noir engine instance
-  final NoirEngine _noirEngine = NoirEngine();
+  /// The Noir runtime instance
+  final NoirRuntime _noirRuntime = NoirRuntime();
 
-  /// Logger instance for the ProofVerifier
-  final Logger _logger = Logger('ProofVerifier');
+  /// Logger instance for the Verifier
+  final Logger _logger = Logger('Verifier');
 
   /// Verify a proof against a circuit
   ///
@@ -49,7 +49,7 @@ class ProofVerifier {
           publicInputs != null ? _inputsToNative(publicInputs) : ffi.nullptr;
 
       // Get the function pointer for the verification function
-      final verifyFunctionPtr = _noirEngine.nativeLib.lookup<
+      final verifyFunctionPtr = _noirRuntime.nativeLib.lookup<
           ffi.NativeFunction<
               ffi.Bool Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Void>,
                   ffi.Pointer<ffi.Void>)>>('noir_verify_proof');
@@ -108,14 +108,13 @@ class ProofVerifier {
   ffi.Pointer<ffi.Void> _inputsToNative(Map<String, dynamic> inputs) {
     // This is a simplified implementation - a real implementation would need
     // to properly convert the inputs to the expected native structure
-    // ... implementation details ...
-    return ffi.nullptr;
+    throw UnimplementedError('_inputsToNative() not implemented');
   }
 
   /// Free the memory used by the inputs
   void _freeInputs(ffi.Pointer<ffi.Void> inputsPtr) {
     // This is a simplified implementation - a real implementation would need
     // to properly free the memory used by the inputs
-    // ... implementation details ...
+    throw UnimplementedError('_freeInputs() not implemented');
   }
 }
