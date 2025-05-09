@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:ffi' as ffi;
 import 'dart:io';
+import 'package:aztecdart/utils/logging.dart';
 import 'package:ffi/ffi.dart';
-import '../utils/logger.dart';
 import '../utils/error_handler.dart';
 import '../flutter/platform_bindings.dart';
 

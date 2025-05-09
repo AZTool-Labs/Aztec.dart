@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:aztecdart/utils/logging.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'noir_runtime.dart';
-import '../utils/logger.dart';
 
 /// CircuitManager handles the lifecycle of Noir circuits.
 ///

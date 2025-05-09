@@ -1,12 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:aztecdart/utils/logging.dart';
+
 import '../aztec/account.dart';
 import '../aztec/network.dart';
 import '../aztec/transaction.dart';
 import '../core/circuit_manager.dart';
 import '../core/proof_generator.dart';
-import '../utils/logger.dart';
 
 /// SmartContractManager provides functionality for interacting with smart contracts on the Aztec Network.
 ///

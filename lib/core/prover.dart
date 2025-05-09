@@ -2,9 +2,10 @@ import 'dart:async';
 import 'dart:ffi' as ffi;
 import 'dart:isolate';
 import 'dart:typed_data';
+import 'package:aztecdart/utils/logging.dart';
+
 import 'noir_runtime.dart';
 import 'witness.dart';
-import '../utils/logger.dart';
 
 /// Prover handles the generation of zero-knowledge proofs.
 ///
