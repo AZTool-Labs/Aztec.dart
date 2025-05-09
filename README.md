@@ -15,7 +15,7 @@ Aztec.dart is a Flutter Package that provides a toolkit for integrating zero-kno
 - 🔄 **Cross-Chain Functionality**: Bridge assets between Aztec and other chains
 - 📱 **Platform Integration**: Native support for Android and iOS
 - 🧩 **Plugin System**: Extensible architecture for custom functionality
-- 🔒 **Security Features**: Biometric authentication, secure storage, and device security checks
+- 🔒 **Security Features**: secure storage, and device security checks
 
 
 ## Architecture
@@ -62,15 +62,6 @@ android {
         }
     }
 }
-```
-
-#### iOS
-
-Add the following to your `ios/Runner/Info.plist`:
-
-```xml
-<key>NSFaceIDUsageDescription</key>
-<string>This app uses Face ID for secure authentication</string>
 ```
 
 ## Usage
