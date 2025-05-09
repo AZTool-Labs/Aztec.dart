@@ -1,7 +1,5 @@
 ### Aztec.dart
 A Flutter SDK for Noir and Aztec Network integration. 
-Build privacy-preserving applications with zero-knowledge proofs.
-
 
 ## Overview
 
