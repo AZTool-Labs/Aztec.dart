@@ -3,6 +3,7 @@ import 'dart:ffi' as ffi;
 import 'dart:isolate';
 import 'dart:typed_data';
 import 'package:aztecdart/utils/logging.dart';
+import 'package:ffi/ffi.dart' as ffi;
 
 import 'noir_engine.dart';
 

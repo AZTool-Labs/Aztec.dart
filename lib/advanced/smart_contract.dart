@@ -1,12 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:aztecdart/noir/circuit_manager.dart';
 import 'package:aztecdart/utils/logging.dart';
+import 'package:http/http.dart' as http;
 
 import '../aztec/account.dart';
 import '../aztec/network.dart';
 import '../aztec/transaction.dart';
-import '../core/circuit_manager.dart';
 import '../core/proof_generator.dart';
 
 /// SmartContractManager provides functionality for interacting with smart contracts on the Aztec Network.
@@ -67,7 +68,7 @@ class SmartContractManager {
       _logger.debug('Deploying contract from account: ${account.id}');
 
       // Create a deploy transaction
-      final transaction = await AztecTransaction.createDeploy(
+      final transaction = await AztecTransactionExtension.createDeploy(
         from: account,
         fee: fee,
         data: {
@@ -134,7 +135,7 @@ class SmartContractManager {
           'Calling contract method: $method on contract: ${contract.address}');
 
       // Create a contract transaction
-      final transaction = await AztecTransaction.createContract(
+      final transaction = await AztecTransactionExtension.createContract(
         from: account,
         fee: fee,
         data: {
@@ -326,6 +327,9 @@ extension AztecTransactionExtension on AztecTransaction {
 
 /// Extension methods for AztecNetwork
 extension AztecNetworkExtension on AztecNetwork {
+  /// HTTP client for network requests
+  static final http.Client _client = http.Client();
+
   /// Query a contract
   Future<dynamic> queryContract(Map<String, dynamic> queryData) async {
     try {

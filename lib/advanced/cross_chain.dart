@@ -3,9 +3,10 @@ import 'dart:typed_data';
 import 'package:aztecdart/aztec/asset.dart';
 import 'package:aztecdart/aztec/network.dart';
 import 'package:aztecdart/aztec/transaction.dart';
-import 'package:aztecdart/core/circuit_manager.dart';
 import 'package:aztecdart/core/proof_generator.dart';
-import 'package:aztecdart/network/account.dart';
+import 'package:aztecdart/aztec/account.dart';
+import 'package:aztecdart/noir/circuit_manager.dart';
+import 'package:aztecdart/plugins/plugin_interface.dart';
 import 'package:aztecdart/utils/logging.dart';
 
 /// CrossChainManager provides functionality for cross-chain operations.
@@ -289,27 +290,55 @@ enum CrossChainStatus {
 /// Receipt for a cross-chain transaction
 class CrossChainReceipt {
   /// The source chain ID
-  late final int sourceChainId;
+  final int sourceChainId;
 
   /// The transaction hash on the source chain
-  late final String sourceTransaction;
+  final String sourceTransaction;
 
   /// The destination chain ID
-  late final int destinationChainId;
+  final int destinationChainId;
 
   /// The transaction hash on the destination chain
-  late final String destinationTransaction;
+  final String destinationTransaction;
 
   /// The asset ID
-  late final String asset;
+  final String asset;
 
   /// The amount
-  late final BigInt amount;
+  final BigInt amount;
 
   /// The status of the transaction
-  late final AztecTransactionStatus status;
+  final AztecTransactionStatus status;
 
   /// The timestamp
+  final DateTime timestamp;
+
+  /// Constructor for CrossChainReceipt
+  CrossChainReceipt({
+    required this.sourceChainId,
+    required this.sourceTransaction,
+    required this.destinationChainId,
+    required this.destinationTransaction,
+    required this.asset,
+    required this.amount,
+    required this.status,
+    required this.timestamp,
+  });
+}
+
+/// Represents the result of a transaction verification.
+class TransactionVerification {
+  /// Whether the transaction is valid.
+  final bool isValid;
+
+  /// The reason for invalidity, if any.
+  final String? reason;
+
+  /// Constructor for TransactionVerification.
+  TransactionVerification({
+    required this.isValid,
+    this.reason,
+  });
 }
 
 /// PluginManager handles the registration and management of plugins.

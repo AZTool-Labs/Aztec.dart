@@ -1,13 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:aztecdart/noir/circuit_manager.dart';
+import 'package:convert/convert.dart';
+import 'package:aztecdart/core/noir_engine.dart';
 import 'package:aztecdart/utils/logging.dart';
 import 'package:crypto/crypto.dart';
 import 'account.dart';
 import 'network.dart';
 import '../core/proof_generator.dart';
-import '../core/circuit_manager.dart';
-import '../utils/error_handler.dart';
 
 /// Status of an Aztec transaction
 enum AztecTransactionStatus {
@@ -405,7 +406,7 @@ class AztecTransaction {
   Future<Uint8List> _serializeForSigning() async {
     // This is a simplified implementation - a real implementation would need
     // to properly serialize the transaction for signing
-    final data = jsonEncode({
+    jsonEncode({
       'id': id,
       'type': type.toString(),
       'from': fromAccountId,
@@ -418,7 +419,7 @@ class AztecTransaction {
       'data': data,
     });
 
-    return Uint8List.fromList(utf8.encode(data));
+    return Uint8List.fromList(utf8.encode(jsonEncode(data)));
   }
 
   /// Submit this transaction to the network

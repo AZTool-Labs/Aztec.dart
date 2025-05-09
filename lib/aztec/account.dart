@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:convert/convert.dart';
 import 'dart:typed_data';
 import 'package:aztecdart/utils/logging.dart';
 import 'package:crypto/crypto.dart';
 import '../crypto/key_manager.dart';
-import '../utils/error_handler.dart';
 import 'network.dart';
 
 /// AztecAccount represents a user account on the Aztec Network.
@@ -56,7 +56,7 @@ class AztecAccount {
   }) async {
     try {
       // Generate a new account ID
-      final accountId = _generateAccountId(keyManager, index);
+      final accountId = await _generateAccountId(keyManager, index);
 
       // Create the account
       final account = AztecAccount(
@@ -77,9 +77,10 @@ class AztecAccount {
   }
 
   /// Generate an account ID from a key manager and index
-  static String _generateAccountId(KeyManager keyManager, int index) {
+  static Future<String> _generateAccountId(
+      KeyManager keyManager, int index) async {
     // Get the public key for the account
-    final publicKey = keyManager.derivePublicKey(index);
+    final publicKey = await keyManager.derivePublicKey(index);
 
     // Hash the public key to create an account ID
     final hash = sha256.convert(publicKey).bytes;

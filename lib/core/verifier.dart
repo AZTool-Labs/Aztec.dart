@@ -1,10 +1,9 @@
 import 'dart:async';
 import 'dart:ffi' as ffi;
 import 'dart:typed_data';
+import 'package:aztecdart/core/proof_generator.dart';
+import 'package:aztecdart/noir/noir_runtime.dart';
 import 'package:aztecdart/utils/logging.dart';
-
-import 'noir_runtime.dart';
-import 'prover.dart';
 
 /// Verifier handles the verification of zero-knowledge proofs.
 ///

@@ -82,9 +82,9 @@ class HashFunction {
   /// [input] - The input to hash
   ///
   /// Returns the hash as a Uint8List
-  Uint8List sha256(Uint8List input) {
+  Uint8List computeSha256(Uint8List input) {
     try {
-      final hash = crypto.sha256.convert(input);
+      final hash = sha256.convert(input);
       return Uint8List.fromList(hash.bytes);
     } catch (e, stackTrace) {
       _logger.error('Failed to compute SHA-256 hash', e, stackTrace);
@@ -103,7 +103,7 @@ class HashFunction {
       // the actual Keccak-256 algorithm
 
       // Use SHA-256 as a placeholder
-      final hash = crypto.sha256.convert(input);
+      final hash = sha256.convert(input);
 
       return Uint8List.fromList(hash.bytes);
     } catch (e, stackTrace) {
