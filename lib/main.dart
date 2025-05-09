@@ -1,125 +1,262 @@
+import 'package:aztecdart/aztec/account.dart';
+import 'package:aztecdart/aztec/asset.dart';
+import 'package:aztecdart/crypto/key_manager.dart';
+import 'package:aztecdart/network/client.dart';
+import 'package:aztecdart/noir/circuit_manager.dart';
+import 'package:aztecdart/noir/noir_runtime.dart';
+import 'package:aztecdart/utils/error_handler.dart';
+import 'package:aztecdart/utils/logging.dart';
 import 'package:flutter/material.dart';
+// import 'package:aztec_dart/aztec_dart.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  // Ensure Flutter is initialized
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize error handling
+  ErrorHandler.initialize();
+
+  // Set up logging
+  Logger.setMinLevel(LogLevel.debug);
+  final logger = Logger('Main');
+
+  try {
+    // Initialize the Noir runtime
+    final noirRuntime = NoirRuntime();
+    await noirRuntime.initialize();
+    logger.info('Noir runtime initialized successfully');
+
+    // Initialize the circuit manager
+    final circuitManager = CircuitManager();
+    await circuitManager.initialize();
+    logger.info('Circuit manager initialized successfully');
+
+    // Connect to the Aztec Network (testnet for example)
+    final networkClient = await AztecNetworkClientFactory.createTestnet();
+    logger.info('Connected to Aztec Network: ${networkClient.name}');
+
+    // Run the app
+    runApp(AztecDartExampleApp(
+      noirRuntime: noirRuntime,
+      circuitManager: circuitManager,
+      networkClient: networkClient,
+    ));
+  } catch (e, stackTrace) {
+    logger.error('Failed to initialize app', e, stackTrace);
+    // Show an error screen or handle the error appropriately
+    runApp(ErrorApp(error: e.toString()));
+  }
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class AztecDartExampleApp extends StatelessWidget {
+  final NoirRuntime noirRuntime;
+  final CircuitManager circuitManager;
+  final AztecNetworkClient networkClient;
 
-  // This widget is the root of your application.
+  const AztecDartExampleApp({
+    super.key,
+    required this.noirRuntime,
+    required this.circuitManager,
+    required this.networkClient,
+  });
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Aztec.dart Example',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
+        primarySwatch: Colors.purple,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: HomePage(
+        noirRuntime: noirRuntime,
+        circuitManager: circuitManager,
+        networkClient: networkClient,
+      ),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+class HomePage extends StatefulWidget {
+  final NoirRuntime noirRuntime;
+  final CircuitManager circuitManager;
+  final AztecNetworkClient networkClient;
 
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+  const HomePage({
+    super.key,
+    required this.noirRuntime,
+    required this.circuitManager,
+    required this.networkClient,
+  });
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  _HomePageState createState() => _HomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _HomePageState extends State<HomePage> {
+  final logger = Logger('HomePage');
+  KeyManager? keyManager;
+  AztecAccount? account;
+  List<AztecAsset> assets = [];
+  bool isLoading = false;
+  String? errorMessage;
 
-  void _incrementCounter() {
+  @override
+  void initState() {
+    super.initState();
+    _initializeAccount();
+  }
+
+  Future<void> _initializeAccount() async {
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      isLoading = true;
+      errorMessage = null;
     });
+
+    try {
+      // Initialize key manager
+      keyManager = KeyManager();
+      await keyManager!.initialize();
+      logger.info('Key manager initialized');
+
+      // Create or load an account
+      account = await AztecAccount.create(
+        keyManager: keyManager!,
+        client: widget.networkClient,
+        network: widget.networkClient.network,
+        name: 'Example Account',
+      );
+      logger.info('Account created: ${account!.id}');
+
+      // Get available assets
+      assets = await widget.networkClient.getAssets();
+      logger.info('Loaded ${assets.length} assets');
+
+      setState(() {
+        isLoading = false;
+      });
+    } catch (e, stackTrace) {
+      logger.error('Failed to initialize account', e, stackTrace);
+      setState(() {
+        isLoading = false;
+        errorMessage = 'Failed to initialize: $e';
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+        title: const Text('Aztec.dart Example'),
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : errorMessage != null
+              ? Center(child: Text('Error: $errorMessage'))
+              : account == null
+                  ? const Center(child: Text('No account initialized'))
+                  : _buildAccountView(),
+    );
+  }
+
+  Widget _buildAccountView() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Account: ${account!.name ?? 'Unnamed'}',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          Text('ID: ${account!.id}'),
+          const SizedBox(height: 16),
+          Text(
+            'Assets',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          Expanded(
+            child: assets.isEmpty
+                ? const Center(child: Text('No assets available'))
+                : ListView.builder(
+                    itemCount: assets.length,
+                    itemBuilder: (context, index) {
+                      final asset = assets[index];
+                      return ListTile(
+                        title: Text('${asset.name} (${asset.symbol})'),
+                        subtitle: Text(
+                            'Decimals: ${asset.decimals}, Private: ${asset.isPrivate}'),
+                        onTap: () => _showAssetDetails(asset),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAssetDetails(AztecAsset asset) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('${asset.name} (${asset.symbol})'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('ID: ${asset.id}'),
+            Text('Decimals: ${asset.decimals}'),
+            Text('Private: ${asset.isPrivate}'),
+            if (asset.l1Address != null) Text('L1 Address: ${asset.l1Address}'),
           ],
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+    );
+  }
+
+  @override
+  void dispose() {
+    widget.networkClient.close();
+    super.dispose();
+  }
+}
+
+class ErrorApp extends StatelessWidget {
+  final String error;
+
+  const ErrorApp({Key? key, required this.error}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: Scaffold(
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                const SizedBox(height: 16),
+                const Text(
+                  'Failed to initialize application',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Text(error),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:ffi' as ffi;
+import 'package:ffi/ffi.dart';
 import 'dart:isolate';
 import 'dart:typed_data';
+import 'package:aztecdart/core/witness.dart';
+import 'package:aztecdart/utils/logging.dart';
+
 import 'noir_runtime.dart';
-import 'witness.dart';
-import '../common/logging.dart';
 
 /// Prover handles the generation of zero-knowledge proofs.
 ///
@@ -70,8 +72,8 @@ class Prover {
           generateFunction(circuit.nativePtr, witnessPtr, optionsPtr);
 
       // Free the witness and options memory
-      witness.freeNative(witnessPtr);
-      if (options != null) ffi.calloc.free(optionsPtr);
+      if (options != null) malloc.free(optionsPtr);
+      if (options != null) malloc.free(optionsPtr);
 
       if (proofPtr == ffi.nullptr) {
         throw Exception('Proof generation failed');
@@ -201,7 +203,7 @@ class Prover {
   ffi.Pointer<ffi.Void> _optionsToNative(ProofOptions options) {
     // This is a simplified implementation - a real implementation would need
     // to properly convert the options to the expected native structure
-    final optionsPtr = ffi.calloc<ffi.Uint8>(512);
+    final optionsPtr = malloc<ffi.Uint8>(512);
     // ... populate the options ...
     return optionsPtr.cast();
   }

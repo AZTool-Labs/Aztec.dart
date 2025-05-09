@@ -1,10 +1,30 @@
 import 'dart:async';
 import 'dart:ffi' as ffi;
 import 'dart:io';
+import 'package:aztecdart/utils/logging.dart';
 import 'package:ffi/ffi.dart';
-import '../common/logging.dart';
-import '../common/error_handling.dart';
-import '../ui/platform_integration.dart';
+import '../flutter/platform_bindings.dart';
+
+/// Native struct for NoirRuntimeConfig
+final class NoirRuntimeConfigNative extends ffi.Struct {
+  @ffi.Uint64()
+  external int maxMemory;
+
+  @ffi.Uint32()
+  external int numThreads;
+
+  @ffi.Uint8()
+  external int debugMode; // Using int as boolean
+}
+
+/// Native struct for CompilationOptions
+final class CompilationOptionsNative extends ffi.Struct {
+  @ffi.Uint32()
+  external int optimizationLevel;
+
+  @ffi.Uint8()
+  external int debugInfo; // Using int as boolean
+}
 
 /// NoirRuntime provides the core interface to the Noir language runtime.
 ///
@@ -79,45 +99,47 @@ class NoirRuntime {
   /// Load the Noir native library for Android
   Future<ffi.DynamicLibrary> _loadAndroidLibrary() async {
     // On Android, we need to extract the library from assets and load it
-    return PlatformIntegration.loadAndroidLibrary('libnoir.so');
+    return PlatformBindings.loadAndroidLibrary('libnoir.so');
   }
 
   /// Load the Noir native library for iOS
   Future<ffi.DynamicLibrary> _loadIOSLibrary() async {
     // On iOS, the library is embedded in the app bundle
-    return PlatformIntegration.loadIOSLibrary('Noir');
+    return PlatformBindings.loadIOSLibrary('Noir');
   }
 
   /// Initialize the Noir runtime with the given configuration
   bool _initializeRuntime(NoirRuntimeConfig config) {
-    // Get the function pointer for the initialization function
-    final initFunctionPtr = _noirLib
-        .lookup<ffi.NativeFunction<ffi.Bool Function(ffi.Pointer<ffi.Void>)>>(
-            'noir_initialize');
-
-    // Create the Dart function from the native function
-    final initFunction =
-        initFunctionPtr.asFunction<bool Function(ffi.Pointer<ffi.Void>)>();
-
     // Convert the configuration to a native structure
     final configPtr = _configToNative(config);
 
-    // Call the initialization function
-    final result = initFunction(configPtr);
+    try {
+      // Get the function pointer for the initialization function
+      final initFunctionPtr = _noirLib.lookup<
+          ffi.NativeFunction<
+              ffi.Bool Function(
+                  ffi.Pointer<NoirRuntimeConfigNative>)>>('noir_initialize');
 
-    // Free the configuration memory
-    calloc.free(configPtr);
+      // Create the Dart function from the native function
+      final initFunction = initFunctionPtr
+          .asFunction<bool Function(ffi.Pointer<NoirRuntimeConfigNative>)>();
 
-    return result;
+      // Call the initialization function
+      return initFunction(configPtr);
+    } finally {
+      // Free the configuration memory
+      calloc.free(configPtr);
+    }
   }
 
   /// Convert a Dart configuration object to a native pointer
-  ffi.Pointer<ffi.Void> _configToNative(NoirRuntimeConfig config) {
-    // This is a simplified implementation - a real implementation would need
-    // to properly convert the configuration to the expected native structure
-    final configPtr = calloc<ffi.Uint8>(1024);
-    // ... populate the configuration ...
-    return configPtr.cast();
+  ffi.Pointer<NoirRuntimeConfigNative> _configToNative(
+      NoirRuntimeConfig config) {
+    final configPtr = calloc<NoirRuntimeConfigNative>();
+    configPtr.ref.maxMemory = config.maxMemory;
+    configPtr.ref.numThreads = config.numThreads;
+    configPtr.ref.debugMode = config.debugMode ? 1 : 0;
+    return configPtr;
   }
 
   /// Compile a Noir circuit from source code
@@ -134,33 +156,31 @@ class NoirRuntime {
   }) async {
     _ensureInitialized();
 
+    // Convert the source to a native string
+    final sourcePtr = source.toNativeUtf8();
+
+    // Convert options to native structure if provided
+    final optionsPtr =
+        options != null ? _optionsToNative(options) : ffi.nullptr;
+
     try {
       _logger.debug('Compiling circuit: ${name ?? 'unnamed'}');
 
-      // Convert the source to a native string
-      final sourcePtr = source.toNativeUtf8();
-
       // Get the function pointer for the compilation function
       final compileFunctionPtr = _noirLib.lookup<
-          ffi.NativeFunction<
-              ffi.Pointer<ffi.Void> Function(ffi.Pointer<ffi.Utf8>,
-                  ffi.Pointer<ffi.Void>)>>('noir_compile_circuit');
+              ffi.NativeFunction<
+                  ffi.Pointer<ffi.Void> Function(ffi.Pointer<ffi.Char>,
+                      ffi.Pointer<CompilationOptionsNative>)>>(
+          'noir_compile_circuit');
 
       // Create the Dart function from the native function
       final compileFunction = compileFunctionPtr.asFunction<
           ffi.Pointer<ffi.Void> Function(
-              ffi.Pointer<ffi.Utf8>, ffi.Pointer<ffi.Void>)>();
-
-      // Convert options to native structure
-      final optionsPtr =
-          options != null ? _optionsToNative(options) : ffi.nullptr;
+              ffi.Pointer<ffi.Char>, ffi.Pointer<CompilationOptionsNative>)>();
 
       // Call the compilation function
-      final circuitPtr = compileFunction(sourcePtr, optionsPtr);
-
-      // Free the source and options memory
-      calloc.free(sourcePtr);
-      if (options != null) calloc.free(optionsPtr);
+      final circuitPtr =
+          compileFunction(sourcePtr.cast<ffi.Char>(), optionsPtr);
 
       if (circuitPtr == ffi.nullptr) {
         throw Exception('Circuit compilation failed');
@@ -171,16 +191,20 @@ class NoirRuntime {
     } catch (e, stackTrace) {
       _logger.error('Circuit compilation failed', e, stackTrace);
       throw NoirCompilationException('Failed to compile circuit: $e');
+    } finally {
+      // Free the source and options memory
+      calloc.free(sourcePtr);
+      if (options != null) calloc.free(optionsPtr);
     }
   }
 
   /// Convert compilation options to a native pointer
-  ffi.Pointer<ffi.Void> _optionsToNative(CompilationOptions options) {
-    // This is a simplified implementation - a real implementation would need
-    // to properly convert the options to the expected native structure
-    final optionsPtr = calloc<ffi.Uint8>(512);
-    // ... populate the options ...
-    return optionsPtr.cast();
+  ffi.Pointer<CompilationOptionsNative> _optionsToNative(
+      CompilationOptions options) {
+    final optionsPtr = calloc<CompilationOptionsNative>();
+    optionsPtr.ref.optimizationLevel = options.optimizationLevel;
+    optionsPtr.ref.debugInfo = options.debugInfo ? 1 : 0;
+    return optionsPtr;
   }
 
   /// Load a pre-compiled circuit from a binary representation
@@ -195,11 +219,11 @@ class NoirRuntime {
   }) async {
     _ensureInitialized();
 
+    // Allocate memory for the binary data
+    final dataPtr = calloc<ffi.Uint8>(bytes.length);
+
     try {
       _logger.debug('Loading compiled circuit: ${name ?? 'unnamed'}');
-
-      // Allocate memory for the binary data
-      final dataPtr = calloc<ffi.Uint8>(bytes.length);
 
       // Copy the bytes to the native memory
       for (var i = 0; i < bytes.length; i++) {
@@ -219,9 +243,6 @@ class NoirRuntime {
       // Call the loading function
       final circuitPtr = loadFunction(dataPtr, bytes.length);
 
-      // Free the data memory
-      calloc.free(dataPtr);
-
       if (circuitPtr == ffi.nullptr) {
         throw Exception('Circuit loading failed');
       }
@@ -231,6 +252,9 @@ class NoirRuntime {
     } catch (e, stackTrace) {
       _logger.error('Circuit loading failed', e, stackTrace);
       throw NoirLoadException('Failed to load circuit: $e');
+    } finally {
+      // Free the data memory
+      calloc.free(dataPtr);
     }
   }
 
@@ -326,16 +350,74 @@ class CompiledCircuit {
 
   /// Serialize the compiled circuit to a binary representation
   Future<List<int>> serialize() async {
-    // Implementation would serialize the circuit to a binary format
-    // that can be stored and later loaded with loadCompiledCircuit
-    throw UnimplementedError('Circuit serialization not implemented');
+    // Get the function pointer for the serialization function
+    final serializeFunctionPtr = NoirRuntime().nativeLib.lookup<
+        ffi.NativeFunction<
+            ffi.Pointer<SerializedCircuitNative> Function(
+                ffi.Pointer<ffi.Void>)>>('noir_serialize_circuit');
+
+    // Create the Dart function from the native function
+    final serializeFunction = serializeFunctionPtr.asFunction<
+        ffi.Pointer<SerializedCircuitNative> Function(ffi.Pointer<ffi.Void>)>();
+
+    // Call the serialization function
+    final serializedPtr = serializeFunction(_nativePtr);
+
+    try {
+      if (serializedPtr == ffi.nullptr) {
+        throw Exception('Circuit serialization failed');
+      }
+
+      // Extract the data from the serialized circuit
+      final dataPtr = serializedPtr.ref.data;
+      final dataLength = serializedPtr.ref.length;
+
+      // Copy the data to a Dart list
+      final result = List<int>.filled(dataLength, 0);
+      for (var i = 0; i < dataLength; i++) {
+        result[i] = dataPtr[i];
+      }
+
+      return result;
+    } finally {
+      // Free the serialized circuit
+      final freeFunctionPtr = NoirRuntime().nativeLib.lookup<
+              ffi.NativeFunction<
+                  ffi.Void Function(ffi.Pointer<SerializedCircuitNative>)>>(
+          'noir_free_serialized_circuit');
+
+      final freeFunction = freeFunctionPtr
+          .asFunction<void Function(ffi.Pointer<SerializedCircuitNative>)>();
+
+      freeFunction(serializedPtr);
+    }
   }
 
   /// Free the resources used by the compiled circuit
   void dispose() {
-    // Implementation would free the native resources
-    throw UnimplementedError('Circuit disposal not implemented');
+    if (_nativePtr != ffi.nullptr) {
+      // Get the function pointer for the disposal function
+      final disposeFunctionPtr = NoirRuntime()
+          .nativeLib
+          .lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+              'noir_free_circuit');
+
+      // Create the Dart function from the native function
+      final disposeFunction =
+          disposeFunctionPtr.asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+      // Call the disposal function
+      disposeFunction(_nativePtr);
+    }
   }
+}
+
+/// Native struct for serialized circuit data
+final class SerializedCircuitNative extends ffi.Struct {
+  external ffi.Pointer<ffi.Uint8> data;
+
+  @ffi.Uint32()
+  external int length;
 }
 
 /// Exception thrown when there is an error in the Noir runtime
