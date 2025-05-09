@@ -1,9 +1,9 @@
 ### Aztec.dart
-A Flutter Package for Noir and Aztec Network integration. 
+A Flutter SDK for Noir and Aztec Network integration. 
 
 ## Overview
 
-Aztec.dart is a Flutter Package that provides a toolkit for integrating zero-knowledge proofs using Noir and interacting with the Aztec Network. This enables developers to build privacy applications with features like private transactions, zero-knowledge smart contracts, and secure cross-chain operations.
+Aztec.dart is a Flutter SDK that provides a toolkit for integrating zero-knowledge proofs using Noir and interacting with the Aztec Network. This enables developers to build privacy applications with features like private transactions, zero-knowledge smart contracts, and secure cross-chain operations.
 
 ## Features
 
