@@ -1,8 +1,7 @@
 import 'dart:async';
 import 'dart:ffi' as ffi;
-import 'dart:io';
+import 'package:aztecdart/utils/logging.dart';
 import 'package:flutter/services.dart';
-import '../utils/logger.dart';
 
 /// PlatformBindings provides platform-specific functionality for the Aztec.dart package.
 ///

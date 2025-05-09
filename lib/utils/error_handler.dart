@@ -1,5 +1,4 @@
-import 'dart:async';
-import 'logger.dart';
+import 'package:aztecdart/utils/logging.dart';
 
 /// Global error handler for the Aztec.dart package
 class ErrorHandler {

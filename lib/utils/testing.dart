@@ -1,15 +1,12 @@
 import 'dart:async';
 import 'dart:typed_data';
+import 'package:aztecdart/utils/logging.dart';
+
 import '../aztec/account.dart';
 import '../aztec/asset.dart';
 import '../aztec/network.dart';
 import '../aztec/transaction.dart';
-import '../core/circuit_manager.dart';
-import '../core/noir_engine.dart';
-import '../core/proof_generator.dart';
-import '../core/proof_verifier.dart';
 import '../crypto/key_manager.dart';
-import 'logger.dart';
 
 /// TestUtils provides utilities for testing the Aztec.dart package.
 ///

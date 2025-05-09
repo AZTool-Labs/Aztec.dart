@@ -1,10 +1,10 @@
 import 'dart:async';
+import 'package:aztecdart/utils/logging.dart';
 import 'package:flutter/foundation.dart';
 import '../aztec/account.dart';
 import '../aztec/asset.dart';
 import '../aztec/network.dart';
 import '../aztec/transaction.dart';
-import '../utils/logger.dart';
 
 /// AztecState is a ChangeNotifier that manages the state of the Aztec.dart package.
 ///

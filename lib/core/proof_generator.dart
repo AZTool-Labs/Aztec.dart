@@ -2,8 +2,9 @@ import 'dart:async';
 import 'dart:ffi' as ffi;
 import 'dart:isolate';
 import 'dart:typed_data';
+import 'package:aztecdart/utils/logging.dart';
+
 import 'noir_engine.dart';
-import '../utils/logger.dart';
 
 /// ProofGenerator handles the generation of zero-knowledge proofs.
 ///

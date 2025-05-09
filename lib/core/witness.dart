@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'dart:ffi' as ffi;
 import 'dart:typed_data';
-import '../utils/logger.dart';
+
+import 'package:aztecdart/utils/logging.dart';
 
 /// Witness represents the inputs to a circuit for proof generation.
 ///

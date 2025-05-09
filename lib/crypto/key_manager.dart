@@ -3,10 +3,10 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
+import 'package:aztecdart/utils/logging.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:bip39/bip39.dart' as bip39;
-import '../utils/logger.dart';
 import '../utils/error_handler.dart';
 
 /// KeyManager handles the generation, storage, and management of cryptographic keys.

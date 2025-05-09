@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:aztecdart/utils/logging.dart';
 import 'package:crypto/crypto.dart';
 import '../crypto/key_manager.dart';
-import '../utils/logger.dart';
 import '../utils/error_handler.dart';
 import 'client.dart';
 

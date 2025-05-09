@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:aztecdart/aztec/asset.dart';
+import 'package:aztecdart/aztec/transaction.dart';
+import 'package:aztecdart/utils/logging.dart';
 import 'package:http/http.dart' as http;
 import 'account.dart';
-import 'asset.dart';
-import 'transaction.dart';
-import '../utils/logger.dart';
 import '../utils/error_handler.dart';
 
 /// AztecNetworkClient represents a connection to the Aztec Network.

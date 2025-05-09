@@ -1,6 +1,6 @@
 import 'dart:typed_data';
+import 'package:aztecdart/utils/logging.dart';
 import 'package:crypto/crypto.dart';
-import '../utils/logger.dart';
 
 /// HashFunction is a class that provides various hash functions used in the Aztec protocol.
 ///

@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
+import 'package:aztecdart/utils/logging.dart';
 import 'package:crypto/crypto.dart';
-import '../utils/logger.dart';
 
 /// EncryptionScheme is a class that provides various encryption schemes used in the Aztec protocol.
 ///
